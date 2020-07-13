@@ -6,12 +6,14 @@
 #include<vector>
 #include"FeedForward.h"
 
-//TODO add rest of documentation
-
-int highestoutput(FeedForward f){
+/*
+Finds and returns the index of the maximum output of
+a FeedForward given a pointer to it.
+*/
+int highestoutput(FeedForward *f){
  int max = 0;
- for(int i = 0; i < f.getoutputsize(); i++){
-  if(f.getoutput(i) > f.getoutput(max)){
+ for(int i = 0; i < f->getoutputsize(); i++){
+  if(f->getoutput(i) > f->getoutput(max)){
    max = i;
   }
  }
@@ -19,15 +21,20 @@ int highestoutput(FeedForward f){
 }
 
 int main(int argc, char **argv){
+ //Detect command line arguments to the program and exits if they're found.
  if(argc != 1){
   std::cout << "No arguments please." << std::endl;
   return 0;
  }
+
+ //Output opening prompts.
  std::cout << "Interactive deep learning with ANN, first with an evolutionary approach. Compiled on " __DATE__ " at " __TIME__ "." << std::endl;
  std::cout << "To begin we must construct the neural network. Input and output node count are 784 and 10 respectively, fixed by implementation" << std::endl;
  std::cout << "However, you must set the dimensions of the hidden portion of the network. How many hidden layers should it have?" << std::endl;
- unsigned int layers, nperl;//Number of hidden layers, and number of nodes per layer
+ unsigned int layers, nperl;//Number of hidden layers, and number of nodes per layer.
  int t;//temp for data validation
+
+ //Prompt for and accept only a positive whole number twice, assigning them to layers and nperl.
  while(std::cout << "Enter a positive integer." && !(std::cin >> t) || t <= 0 ){
   std::cin.clear();
   std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -41,14 +48,20 @@ int main(int argc, char **argv){
   std::cout << "Caught invalid data. Try again." << std::endl;
  }
  nperl = t;
+
+ //Data acceptance prompt, then construct the trainee network using layers and nperl.
  std::cout << "Constructing network with the given specifications." << std::endl << layers << " is the number of hidden layers and " << nperl << " is the number of nodes in each hidden layer." << std::endl;
- FeedForward trainee(784, layers, nperl, 10);
+ FeedForward trainee(784, layers, nperl, 10);//The network we will be training to recognize handwritten digits.
  std::cout << "Trainee network constructed!" << std::endl;
+
+ //initialize pseudorandom number generator system for evolutionary algorithm.
  std::random_device rd;
  std::mt19937 mt(rd());
- double range = 10.0;
- std::uniform_real_distribution<double> dist(-1 * range, range);// use by "dist(mt)"
- std::uniform_real_distribution<double> lildist(-0.05, 0.05);// use by "dist(mt)"
+ double range = 10.0;//the range of values for generating random networks
+ std::uniform_real_distribution<double> dist(-1 * range, range);//initialize distribution for generating new network
+ std::uniform_real_distribution<double> smalldist(-0.05, 0.05);//initialize narrower distribution for mutating existing network
+
+ //Report to user and initialize trainee randomly
  std::cout << "At first the trainee will be completely random, and will predictably perform very poorly." << std::endl;
  for(int i = 0; i < trainee.getwidth(); i++){
   for(int j = 0; j < trainee.getinputsize(); j++){
@@ -72,16 +85,18 @@ int main(int argc, char **argv){
   }
   trainee.setbias(true, i, 0, dist(mt));
  }
+
+ //Prepare MNIST data from filesystem. NOTE setup.sh must have already run successfully.
  std::cout << "Now we need to load the training data to guage our trainee's performance and improve it." << std::endl;
- std::vector<int> labels;
- std::vector<std::array<unsigned char, 784> > pics;
- std::array<unsigned char, 784> nowpic;
- uint32_t nextint;
- unsigned char nextbyte;
- std::ifstream fstrainlabel("./Training/train-labels-idx1-ubyte", std::ios::binary | std::ios::in);
+ std::vector<int> labels;//Vector of 60,000 integer labels. Numbers 0-9 representing the digit a picture represents.
+ std::vector<std::array<unsigned char, 784> > pics;//Vector of 60,000 grayscale 28x28 images of handwritten digits.
+ std::array<unsigned char, 784> nowpic;//One 28x28 image for reading buffer.
+ uint32_t nextint;//int buffer.
+ unsigned char nextbyte;//single byte buffer.
+ std::ifstream fstrainlabel("./Training/train-labels-idx1-ubyte", std::ios::binary | std::ios::in);//Training label input file stream
  if(fstrainlabel.is_open()){
   std::cout << "Opened training labels." << std::endl;
-  for(int i = 0; i < 2; i++){
+  for(int i = 0; i < 2; i++){//Read first two ints from file, these are magic numbers and should exist
    fstrainlabel.read(reinterpret_cast<char *>(&nextint),sizeof(nextint));
   }
   std::cout << "Reading labels into RAM." << std::endl;
@@ -92,7 +107,6 @@ int main(int argc, char **argv){
  }
  fstrainlabel.close();
  std::cout << "Closed labels." << std::endl;
-
  std::ifstream fstrainpics("./Training/train-images-idx3-ubyte", std::ios::binary | std::ios::in);
  if(fstrainpics.is_open()){
   std::cout << "Opening training images." << std::endl;
@@ -115,6 +129,8 @@ int main(int argc, char **argv){
  }
  fstrainpics.close();
  std::cout << std::endl << "Closed Images." << std::endl << std::endl;
+
+ //TODO resume documentation
  int which = 7;
  std::cout << "Data integrity check." << std::endl;
  std::cout << "An image of a handwritten 3 constructed from numbers should appear in the terminal below." << std::endl;
@@ -138,7 +154,7 @@ int main(int argc, char **argv){
    trainee.setinput(k, ((double)pics[j][k])/((double)255.0));
   }
   trainee.feed();
-  if(highestoutput(trainee) == labels[j]){
+  if(highestoutput(&trainee) == labels[j]){
    tr++;
   }else{
    tw++;
@@ -190,7 +206,7 @@ int main(int argc, char **argv){
     population[i].setinput(k, ((double)pics[j][k])/((double)255.0));
    }
    population[i].feed();
-   if(highestoutput(population[i]) == labels[j]){
+   if(highestoutput(&(population[i])) == labels[j]){
     right++;
    }else{
     wrong++;
@@ -304,48 +320,48 @@ int main(int argc, char **argv){
 
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[first].getweight(false, 0, i, j) + lildist(mt));
+    mangle.setweight(false, 0, i, j, population[first].getweight(false, 0, i, j) + smalldist(mt));
    }
-   mangle.setbias(false,0,i,population[first].getbias(false,0,i) + lildist(mt));
+   mangle.setbias(false,0,i,population[first].getbias(false,0,i) + smalldist(mt));
   }
   
   for(int i = 1; i < mangle.getlayers(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
     for(int k = 0; k < mangle.getwidth(); k++){
-     mangle.setweight(false, i, j, k, population[first].getweight(false, i, j, k) + lildist(mt));
+     mangle.setweight(false, i, j, k, population[first].getweight(false, i, j, k) + smalldist(mt));
     }
-    mangle.setbias(false, i, j, population[first].getbias(false, i , j) + lildist(mt));
+    mangle.setbias(false, i, j, population[first].getbias(false, i , j) + smalldist(mt));
    }
   }
 
   for(int i = 0; i < mangle.getoutputsize(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
-    mangle.setweight(true, i, j, 0, population[first].getweight(true, i, j, 0) + lildist(mt));
+    mangle.setweight(true, i, j, 0, population[first].getweight(true, i, j, 0) + smalldist(mt));
    }
-   mangle.setbias(true, i, 0, population[first].getbias(true, i, 0) + lildist(mt));
+   mangle.setbias(true, i, 0, population[first].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//1
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[first].getweight(false, 0, i, j) + lildist(mt));
+    mangle.setweight(false, 0, i, j, population[first].getweight(false, 0, i, j) + smalldist(mt));
    }
-   mangle.setbias(false,0,i,population[first].getbias(false,0,i) + lildist(mt));
+   mangle.setbias(false,0,i,population[first].getbias(false,0,i) + smalldist(mt));
   }
   
   for(int i = 1; i < mangle.getlayers(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
     for(int k = 0; k < mangle.getwidth(); k++){
-     mangle.setweight(false, i, j, k, population[first].getweight(false, i, j, k) + lildist(mt));
+     mangle.setweight(false, i, j, k, population[first].getweight(false, i, j, k) + smalldist(mt));
     }
-    mangle.setbias(false, i, j, population[first].getbias(false, i , j) + lildist(mt));
+    mangle.setbias(false, i, j, population[first].getbias(false, i , j) + smalldist(mt));
    }
   }
 
   for(int i = 0; i < mangle.getoutputsize(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
-    mangle.setweight(true, i, j, 0, population[first].getweight(true, i, j, 0) + lildist(mt));
+    mangle.setweight(true, i, j, 0, population[first].getweight(true, i, j, 0) + smalldist(mt));
    }
-   mangle.setbias(true, i, 0, population[first].getbias(true, i, 0) + lildist(mt));
+   mangle.setbias(true, i, 0, population[first].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//2
 
@@ -353,48 +369,48 @@ int main(int argc, char **argv){
 
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[second].getweight(false, 0, i, j) + lildist(mt));
+    mangle.setweight(false, 0, i, j, population[second].getweight(false, 0, i, j) + smalldist(mt));
    }
-   mangle.setbias(false,0,i,population[second].getbias(false,0,i) + lildist(mt));
+   mangle.setbias(false,0,i,population[second].getbias(false,0,i) + smalldist(mt));
   }
   
   for(int i = 1; i < mangle.getlayers(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
     for(int k = 0; k < mangle.getwidth(); k++){
-     mangle.setweight(false, i, j, k, population[second].getweight(false, i, j, k) + lildist(mt));
+     mangle.setweight(false, i, j, k, population[second].getweight(false, i, j, k) + smalldist(mt));
     }
-    mangle.setbias(false, i, j, population[second].getbias(false, i , j) + lildist(mt));
+    mangle.setbias(false, i, j, population[second].getbias(false, i , j) + smalldist(mt));
    }
   }
 
   for(int i = 0; i < mangle.getoutputsize(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
-    mangle.setweight(true, i, j, 0, population[second].getweight(true, i, j, 0) + lildist(mt));
+    mangle.setweight(true, i, j, 0, population[second].getweight(true, i, j, 0) + smalldist(mt));
    }
-   mangle.setbias(true, i, 0, population[second].getbias(true, i, 0) + lildist(mt));
+   mangle.setbias(true, i, 0, population[second].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//1
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[second].getweight(false, 0, i, j) + lildist(mt));
+    mangle.setweight(false, 0, i, j, population[second].getweight(false, 0, i, j) + smalldist(mt));
    }
-   mangle.setbias(false,0,i,population[second].getbias(false,0,i) + lildist(mt));
+   mangle.setbias(false,0,i,population[second].getbias(false,0,i) + smalldist(mt));
   }
   
   for(int i = 1; i < mangle.getlayers(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
     for(int k = 0; k < mangle.getwidth(); k++){
-     mangle.setweight(false, i, j, k, population[second].getweight(false, i, j, k) + lildist(mt));
+     mangle.setweight(false, i, j, k, population[second].getweight(false, i, j, k) + smalldist(mt));
     }
-    mangle.setbias(false, i, j, population[second].getbias(false, i , j) + lildist(mt));
+    mangle.setbias(false, i, j, population[second].getbias(false, i , j) + smalldist(mt));
    }
   }
 
   for(int i = 0; i < mangle.getoutputsize(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
-    mangle.setweight(true, i, j, 0, population[second].getweight(true, i, j, 0) + lildist(mt));
+    mangle.setweight(true, i, j, 0, population[second].getweight(true, i, j, 0) + smalldist(mt));
    }
-   mangle.setbias(true, i, 0, population[second].getbias(true, i, 0) + lildist(mt));
+   mangle.setbias(true, i, 0, population[second].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//2
 
@@ -402,48 +418,48 @@ int main(int argc, char **argv){
 
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[third].getweight(false, 0, i, j) + lildist(mt));
+    mangle.setweight(false, 0, i, j, population[third].getweight(false, 0, i, j) + smalldist(mt));
    }
-   mangle.setbias(false,0,i,population[third].getbias(false,0,i) + lildist(mt));
+   mangle.setbias(false,0,i,population[third].getbias(false,0,i) + smalldist(mt));
   }
   
   for(int i = 1; i < mangle.getlayers(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
     for(int k = 0; k < mangle.getwidth(); k++){
-     mangle.setweight(false, i, j, k, population[third].getweight(false, i, j, k) + lildist(mt));
+     mangle.setweight(false, i, j, k, population[third].getweight(false, i, j, k) + smalldist(mt));
     }
-    mangle.setbias(false, i, j, population[third].getbias(false, i , j) + lildist(mt));
+    mangle.setbias(false, i, j, population[third].getbias(false, i , j) + smalldist(mt));
    }
   }
 
   for(int i = 0; i < mangle.getoutputsize(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
-    mangle.setweight(true, i, j, 0, population[third].getweight(true, i, j, 0) + lildist(mt));
+    mangle.setweight(true, i, j, 0, population[third].getweight(true, i, j, 0) + smalldist(mt));
    }
-   mangle.setbias(true, i, 0, population[third].getbias(true, i, 0) + lildist(mt));
+   mangle.setbias(true, i, 0, population[third].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//1
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[third].getweight(false, 0, i, j) + lildist(mt));
+    mangle.setweight(false, 0, i, j, population[third].getweight(false, 0, i, j) + smalldist(mt));
    }
-   mangle.setbias(false,0,i,population[third].getbias(false,0,i) + lildist(mt));
+   mangle.setbias(false,0,i,population[third].getbias(false,0,i) + smalldist(mt));
   }
   
   for(int i = 1; i < mangle.getlayers(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
     for(int k = 0; k < mangle.getwidth(); k++){
-     mangle.setweight(false, i, j, k, population[third].getweight(false, i, j, k) + lildist(mt));
+     mangle.setweight(false, i, j, k, population[third].getweight(false, i, j, k) + smalldist(mt));
     }
-    mangle.setbias(false, i, j, population[third].getbias(false, i , j) + lildist(mt));
+    mangle.setbias(false, i, j, population[third].getbias(false, i , j) + smalldist(mt));
    }
   }
 
   for(int i = 0; i < mangle.getoutputsize(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
-    mangle.setweight(true, i, j, 0, population[third].getweight(true, i, j, 0) + lildist(mt));
+    mangle.setweight(true, i, j, 0, population[third].getweight(true, i, j, 0) + smalldist(mt));
    }
-   mangle.setbias(true, i, 0, population[third].getbias(true, i, 0) + lildist(mt));
+   mangle.setbias(true, i, 0, population[third].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//2
 
@@ -451,48 +467,48 @@ int main(int argc, char **argv){
 
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[fourth].getweight(false, 0, i, j) + lildist(mt));
+    mangle.setweight(false, 0, i, j, population[fourth].getweight(false, 0, i, j) + smalldist(mt));
    }
-   mangle.setbias(false,0,i,population[fourth].getbias(false,0,i) + lildist(mt));
+   mangle.setbias(false,0,i,population[fourth].getbias(false,0,i) + smalldist(mt));
   }
   
   for(int i = 1; i < mangle.getlayers(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
     for(int k = 0; k < mangle.getwidth(); k++){
-     mangle.setweight(false, i, j, k, population[fourth].getweight(false, i, j, k) + lildist(mt));
+     mangle.setweight(false, i, j, k, population[fourth].getweight(false, i, j, k) + smalldist(mt));
     }
-    mangle.setbias(false, i, j, population[fourth].getbias(false, i , j) + lildist(mt));
+    mangle.setbias(false, i, j, population[fourth].getbias(false, i , j) + smalldist(mt));
    }
   }
 
   for(int i = 0; i < mangle.getoutputsize(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
-    mangle.setweight(true, i, j, 0, population[fourth].getweight(true, i, j, 0) + lildist(mt));
+    mangle.setweight(true, i, j, 0, population[fourth].getweight(true, i, j, 0) + smalldist(mt));
    }
-   mangle.setbias(true, i, 0, population[fourth].getbias(true, i, 0) + lildist(mt));
+   mangle.setbias(true, i, 0, population[fourth].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//1
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[fourth].getweight(false, 0, i, j) + lildist(mt));
+    mangle.setweight(false, 0, i, j, population[fourth].getweight(false, 0, i, j) + smalldist(mt));
    }
-   mangle.setbias(false,0,i,population[fourth].getbias(false,0,i) + lildist(mt));
+   mangle.setbias(false,0,i,population[fourth].getbias(false,0,i) + smalldist(mt));
   }
   
   for(int i = 1; i < mangle.getlayers(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
     for(int k = 0; k < mangle.getwidth(); k++){
-     mangle.setweight(false, i, j, k, population[fourth].getweight(false, i, j, k) + lildist(mt));
+     mangle.setweight(false, i, j, k, population[fourth].getweight(false, i, j, k) + smalldist(mt));
     }
-    mangle.setbias(false, i, j, population[fourth].getbias(false, i , j) + lildist(mt));
+    mangle.setbias(false, i, j, population[fourth].getbias(false, i , j) + smalldist(mt));
    }
   }
 
   for(int i = 0; i < mangle.getoutputsize(); i++){
    for(int j = 0; j < mangle.getwidth(); j++){
-    mangle.setweight(true, i, j, 0, population[fourth].getweight(true, i, j, 0) + lildist(mt));
+    mangle.setweight(true, i, j, 0, population[fourth].getweight(true, i, j, 0) + smalldist(mt));
    }
-   mangle.setbias(true, i, 0, population[fourth].getbias(true, i, 0) + lildist(mt));
+   mangle.setbias(true, i, 0, population[fourth].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//2
   std::cout << "NPS" << newpop.size() << std::endl;
@@ -511,7 +527,7 @@ int main(int argc, char **argv){
     population[i].setinput(k, ((double)pics[j][k])/((double)255.0));
    }
    population[i].feed();
-   if(highestoutput(population[i]) == labels[j]){
+   if(highestoutput(&(population[i])) == labels[j]){
     right++;
    }else{
     wrong++;

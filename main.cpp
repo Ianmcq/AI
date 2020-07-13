@@ -21,7 +21,7 @@ int highestoutput(FeedForward *f){
 }
 
 int main(int argc, char **argv){
- //Detect command line arguments to the program and exits if they're found.
+ //Detect command line arguments to the program and exit if they're found.
  if(argc != 1){
   std::cout << "No arguments please." << std::endl;
   return 0;
@@ -130,7 +130,7 @@ int main(int argc, char **argv){
  fstrainpics.close();
  std::cout << std::endl << "Closed Images." << std::endl << std::endl;
 
- //TODO resume documentation
+ //check that the 7th picture is of a 3, and that the 7th label is three. Also output the 3 as a sample to be sure the images are valid.
  int which = 7;
  std::cout << "Data integrity check." << std::endl;
  std::cout << "An image of a handwritten 3 constructed from numbers should appear in the terminal below." << std::endl;
@@ -143,32 +143,39 @@ int main(int argc, char **argv){
   }
  }
  std::cout << std::endl;
+ if(labels[which] =! 3){
+  std::cout << "Data is invalid. Delete Training and Test directories, rerun setup.sh, and try again.";
+  return EXIT_FAILURE;
+ }
+
+ //Start preliminary assessment of the trainee network's accuracy. Should be around 0.1, indicating 1 out of 10 guesses are correct.
  std::cout << "Now we will use our training dataset to measure how accurately the trainee recognizes digits." << std::endl;
  std::cout << "The scale is from 0 (the trainee was wrong every time) to 1 (the trainee was correct every time)." << std::endl;
  std::cout << "Starting assesment..." << std::endl;
- double ta;
- int tr = 0, tw = 0;
-
+ double ta;//trainee accuracy
+ int tr = 0, tw = 0;//trainee right answers and trainee wrong answers respectively
  for(int j = 0; j < 60000; j++){
   for(int k = 0; k < 784; k++){
-   trainee.setinput(k, ((double)pics[j][k])/((double)255.0));
+   trainee.setinput(k, ((double)pics[j][k])/((double)255.0));//Set the trainee's inputs to each byte of the image.
   }
-  trainee.feed();
-  if(highestoutput(&trainee) == labels[j]){
+  trainee.feed();//Trainee calculates outputs.
+  if(highestoutput(&trainee) == labels[j]){//Check which output of trainee is the highest, compare to image j's label, and count the right and wrong answers
    tr++;
   }else{
    tw++;
   }
  }
- ta = ((double)tr/(double)(tr+tw));
+ ta = ((double)tr/(double)(tr+tw));//Calculate accuracy
  std::cout << "Done with trainee accuracy assesment!" << std::endl;
  std::cout << "The trainee's accuracy was only " << ta << "." << std::endl;
+
+ //Initialize population of random networks for evolution.
  std::cout << "Now we will make a population of 10 more random networks." << std::endl;
- std::vector<FeedForward> population;
- std::vector<FeedForward> newpop;
- std::vector<double> accuracy;
- FeedForward mangle(784, layers, nperl, 10);
- for(int i = 0; i < 10; i++){
+ std::vector<FeedForward> population;//Population of neural networks to evolve.
+ std::vector<FeedForward> newpop;//Next generation buffer population.
+ std::vector<double> accuracy;//Accuracy of each network in population.
+ FeedForward mangle(784, layers, nperl, 10);//Temporary network for creating and mutating networks in the population.
+ for(int i = 0; i < 10; i++){//To start randomize temp 10 times and push copies to population.
 
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
@@ -195,6 +202,8 @@ int main(int argc, char **argv){
   population.push_back(mangle);
   std::cout << "Done adding net " << i + 1 << " to population." << std::endl;
  }
+
+ //Population assessment. Essentially the same as above trainee assessment, but with array of FeedForward objects
  std::cout << "Next we will assess this population in a like manner to the trainee." << std::endl;
  std::cout << "Starting accuracy calculation..." << std::endl;
  int right, wrong;
@@ -215,8 +224,7 @@ int main(int argc, char **argv){
   accuracy.push_back((double)right/(double)(right+wrong));
   std::cout << "Done with net accuracy " << i + 1 << "." << std::endl;
  }
- 
- double max = -1;
+ double max = -1;//Find index of best accuracy network.
  int maxi = 0;
  for(int i = 0; i < accuracy.size(); i++){
   if(accuracy[i] > max){
@@ -224,31 +232,36 @@ int main(int argc, char **argv){
    maxi = i;
   }
  }
-
- double average, sum = 0;
+ double average, sum = 0;//Calculate average performance of population to show general improvement over time.
  for(int i = 0; i < accuracy.size(); i++){
   sum = sum + accuracy[i];
  }
  average = sum/accuracy.size();
  std::cout << "Average accuracy: " << average << std::endl;
  std::cout << "Highest accuracy: " << max << std::endl;
+
+ //Get from user how long to train.
+ //For each iteration perform population assessment like above, then create new population from best performers for next iteration.
  std::cout << "Finally we will create a new population of 10 new networks based on the old 10." << std::endl;
  std::cout << "To do this we copy the network with the highest accuracy to the next generation." << std::endl;
- std::cout << "Then for the 4 most accurate remaining networks we will copy them with slight variations." << std::endl;
+ std::cout << "Then for the 4 most accurate networks we will copy them with slight variations." << std::endl;
  std::cout << "Last we will create a brand new random network to add to the new generation, to admit fresh tactics." << std::endl;
  std::cout << "We will repeat this process some number of times, then copy the best performer to our trainee." << std::endl;
  std::cout << "How many generations should we use to improve our trainee?" << std::endl;
  t = 0;
- int stop;
+ int stop;//How many iterations to evolve.
  while(std::cout << "Enter a positive integer." && !(std::cin >> t) || t <= 0 ){
   std::cin.clear();
   std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
   std::cout << "Caught invalid data. Try again." << std::endl;
  }
  t = stop;
- int gen = 0, first = 0, second = 0, third = 0, fourth = 0;
- double best;
- std::vector<FeedForward> top4;
+ int gen = 0;//Generation counter.
+ int first = 0, second = 0, third = 0, fourth = 0;//Top 4 network indices.
+ double best;//Value of the best accuracy in population.
+ std::vector<FeedForward> top4;//Vector of top 4 networks.
+
+ //Training loop will repeat the number of times supplied by the user.
  do{
   std::cout << "Generation " << gen << " complete." << std::endl;
   std::cout << "Producing new population..." << std::endl;
@@ -282,7 +295,7 @@ int main(int argc, char **argv){
   newpop.push_back(mangle);
   //top 4 make 2
   best = 0;
-  for(int i = 0; i < population.size(); i++){
+  for(int i = 0; i < population.size(); i++){//Calculate top 4 indices.
    if(accuracy[i] > best){
     best = accuracy[i];
     first = i;
@@ -316,11 +329,11 @@ int main(int argc, char **argv){
    }
   }
 
-  //FIRST MAKE 2
-
+  //First makes 2
+  //TODO shorten these. More nested Loops? Macros?
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
-    mangle.setweight(false, 0, i, j, population[first].getweight(false, 0, i, j) + smalldist(mt));
+    mangle.setweight(false, 0, i, j, population[first].getweight(false, 0, i, j) + smalldist(mt));//Uses smalldist to randomize about a networks current values.
    }
    mangle.setbias(false,0,i,population[first].getbias(false,0,i) + smalldist(mt));
   }
@@ -365,7 +378,7 @@ int main(int argc, char **argv){
   }
   newpop.push_back(mangle);//2
 
-  //SECOND MAKE 2
+  //Second makes 2
 
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
@@ -414,7 +427,7 @@ int main(int argc, char **argv){
   }
   newpop.push_back(mangle);//2
 
-  //THIRD MAKE 2
+  //Third makes 2
 
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
@@ -463,7 +476,7 @@ int main(int argc, char **argv){
   }
   newpop.push_back(mangle);//2
 
-  //FOURTH MAKE 2
+  //Fourth makes 2
 
   for(int i = 0; i < mangle.getwidth(); i++){
    for(int j = 0; j < mangle.getinputsize(); j++){
@@ -511,51 +524,51 @@ int main(int argc, char **argv){
    mangle.setbias(true, i, 0, population[fourth].getbias(true, i, 0) + smalldist(mt));
   }
   newpop.push_back(mangle);//2
-  std::cout << "NPS" << newpop.size() << std::endl;
+
+  //Clear population and refill with new population.
   population.clear();
   for(int i = 0; i < newpop.size(); i++){
    population.push_back(newpop[i]);
   }
 
- std::cout << "Starting accuracy calculation..." << std::endl;
- accuracy.clear();
- for(int i = 0; i < 10; i++){
-  right = 0;
-  wrong = right;
-  for(int j = 0; j < 60000; j++){
-   for(int k = 0; k < 784; k++){
-    population[i].setinput(k, ((double)pics[j][k])/((double)255.0));
+  //Assess new Population.
+  std::cout << "Starting accuracy calculation..." << std::endl;
+  accuracy.clear();
+  for(int i = 0; i < 10; i++){
+   right = 0;
+   wrong = right;
+   for(int j = 0; j < 60000; j++){
+    for(int k = 0; k < 784; k++){
+     population[i].setinput(k, ((double)pics[j][k])/((double)255.0));
+    }
+    population[i].feed();
+    if(highestoutput(&(population[i])) == labels[j]){
+     right++;
+    }else{
+     wrong++;
+    }
    }
-   population[i].feed();
-   if(highestoutput(&(population[i])) == labels[j]){
-    right++;
-   }else{
-    wrong++;
+   accuracy.push_back((double)right/(double)(right+wrong));
+   std::cout << "Done with net accuracy " << i + 1 << "." << std::endl;
+  }
+  max = -1;
+  maxi = 0;
+  for(int i = 0; i < accuracy.size(); i++){
+   if(accuracy[i] > max){
+    max = accuracy[i];
+    maxi = i;
    }
   }
-  accuracy.push_back((double)right/(double)(right+wrong));
-  std::cout << "Done with net accuracy " << i + 1 << "." << std::endl;
- }
- 
- max = -1;
- maxi = 0;
- for(int i = 0; i < accuracy.size(); i++){
-  if(accuracy[i] > max){
-   max = accuracy[i];
-   maxi = i;
+  double average, sum = 0;
+  for(int i = 0; i < accuracy.size(); i++){
+   sum = sum + accuracy[i];
   }
- }
-
- double average, sum = 0;
- for(int i = 0; i < accuracy.size(); i++){
-  sum = sum + accuracy[i];
- }
- average = sum/accuracy.size();
- std::cout << "Average accuracy: " << average << std::endl;
- std::cout << "Highest accuracy: " << max << std::endl;
-
+  average = sum/accuracy.size();
+  std::cout << "Average accuracy: " << average << std::endl;
+  std::cout << "Highest accuracy: " << max << std::endl;
  }while(++gen < stop);
- trainee = new FeedForward(population[maxi]);
+ //Update and save trainee with name prompted from user.
+ trainee = new FeedForward(population[maxi]);//Create network that's a copy of the best performer, and assign to trainee.
  std::cout << "Training finished. Now let's save our graduated trainee for later. What would you like to name it?" << std::endl;
  std::string tname;
  std::cin >> tname;

@@ -2,7 +2,7 @@
 
 This is a work in progress, the purpose of which is to showcase my AI coding for my portfolio.
 
-To test, download or (preferably) clone the remote repository to a local git repository.
+To test, download or and decompress the ZIP, or (preferably) clone the remote repository to a local git repository.
 Then follow the instructions.
 
 INSTRUCTIONS FOR LINUX ENVIRONMENT

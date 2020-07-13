@@ -76,6 +76,34 @@ FeedForward::FeedForward(unsigned int i, unsigned int l, unsigned int w, unsigne
  init();
 }
 
+FeedForward::FeedForward(FeedForward *f){ //TODO check integrity with comparison code
+ insize = f->getinputsize();
+ layers = f->getlayers();
+ width = f->getwidth();
+ outsize = f->getoutputsize();
+ init();
+ for(int i = 0; i < width; i++){
+  hidden[0][i].setbias(f->getbias(false, 0, i));
+  for(int j = 0; j < insize; j++){
+   hidden[0][i].setweight(j, f->getweight(false, 0, i, j));
+  }
+ }
+ for(int i = 1; i < layers; i++){
+  for(int j = 0; j < width; j++){
+   hidden[i][j].setbias(f->getbias(false, i, j));
+   for(int k = 0; k < width; k++){
+    hidden[i][j].setweight(k, f->getweight(false, i, j, k));
+   }
+  }
+ }
+ for(int i = 0; i < outsize; i++){
+  output[i].setbias(f->getbias(true, i, 0));
+  for(int j = 0; j < width; j++){
+   output[i].setweight(j, f->getweight(true, i, j, 0));
+  }
+ }
+}
+
 FeedForward::FeedForward(std::string path){
  std::ifstream infile(path, std::ios::binary | std::ios::in);
  int readint;

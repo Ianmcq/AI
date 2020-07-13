@@ -29,6 +29,7 @@ class FeedForward{
  public:
   FeedForward();
   FeedForward(unsigned int i, unsigned int l, unsigned int w, unsigned int o);
+  FeedForward(FeedForward *f);
   FeedForward(std::string path);
   unsigned int getinputsize();
   unsigned int getoutputsize();

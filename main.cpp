@@ -21,13 +21,17 @@ int highestoutput(FeedForward *f){
 }
 
 int main(int argc, char **argv){
- //Detect command line arguments to the program and exit if they're found.
- if(argc != 1){
-  std::cout << "No arguments please." << std::endl;
+ //Detect command line arguments to the program. Exit if too many are found.
+ if(argc > 2){
+  std::cout << "No third argument please." << std::endl;
+  std::cout << "Usage: AIbin [FILE]" << std::endl << "Tests the network saved to FILE by this program." << std::endl << "If no FILE provided, create and train new network." << std::endl;
   return 0;
  }
-
- //Output opening prompts.
+ //If only 2 arguments, interpret the second as the name of a neural network file to test.
+ if(argc == 2){
+  std::cout << "Testing a saved network's performance." << std::endl;
+ }
+ //If only 1 argument, output opening prompts for creation and training of a new network.
  std::cout << "Interactive deep learning with ANN, first with an evolutionary approach. Compiled on " __DATE__ " at " __TIME__ "." << std::endl;
  std::cout << "To begin we must construct the neural network. Input and output node count are 784 and 10 respectively, fixed by implementation" << std::endl;
  std::cout << "However, you must set the dimensions of the hidden portion of the network. How many hidden layers should it have?" << std::endl;

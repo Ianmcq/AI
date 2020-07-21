@@ -324,7 +324,7 @@ int main(int argc, char **argv){
   std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
   std::cout << "Caught invalid data. Try again." << std::endl;
  }
- t = stop;
+ stop = t;
  int gen = 0;//Generation counter.
  int first = 0, second = 0, third = 0, fourth = 0;//Top 4 network indices.
  double best;//Value of the best accuracy in population.

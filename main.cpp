@@ -30,6 +30,71 @@ int main(int argc, char **argv){
  //If only 2 arguments, interpret the second as the name of a neural network file to test.
  if(argc == 2){
   std::cout << "Testing a saved network's performance." << std::endl;
+  std::vector<int> testlabels;
+  std::vector<std::array<unsigned char, 784> > testpics;
+  std::array<unsigned char, 784> nowpic;
+  uint32_t nextint;
+  unsigned char nextbyte;
+  std::ifstream fstestlabel("./Test/t10k-labels-idx1-ubyte", std::ios::binary | std::ios::in);
+  if(fstestlabel.is_open()){
+   std::cout << "Opening labels." << std::endl;
+   for(int i = 0; i < 2; i++){
+    fstestlabel.read(reinterpret_cast<char *>(&nextint),sizeof(nextint));
+   }
+   for(int i = 0; i < 10000; i++){
+    fstestlabel.read(reinterpret_cast<char *>(&nextbyte), sizeof(nextbyte));
+    testlabels.push_back((int)nextbyte);
+    //std::cout << (int)nextbyte << std::endl;
+   }
+  }
+  fstestlabel.close();
+  std::cout << "Closed labels." << std::endl;
+ 
+  std::ifstream fstestpics("./Test/t10k-images-idx3-ubyte", std::ios::binary | std::ios::in);
+  if(fstestpics.is_open()){
+   std::cout << "Opening images." << std::endl;
+   for(int i = 0; i < 4; i++){
+    fstestpics.read(reinterpret_cast<char *>(&nextint),sizeof(nextint));
+   }
+   for(int picnum = 0; picnum < 10000; picnum++){
+    int piccount = 0;
+    testpics.push_back(std::array<unsigned char, 784>());
+    for(int i = 0; i < 28; i++){
+     for(int j = 0; j < 28; j++){
+      fstestpics.read(reinterpret_cast<char *>(&nextbyte), sizeof(nextbyte));
+      testpics[picnum][piccount] = nextbyte;
+      piccount++;
+     }
+    } 
+   }
+  }
+  fstestpics.close();
+  std::cout << std::endl << "Closed images." << std::endl << std::endl;
+  FeedForward evaluee(argv[1]);
+  std::cout << "Evaluee loaded, it's dimensions are as follows." << std::endl;
+  std::cout << "Evaluee ins: " << evaluee.getinputsize() << std::endl;
+  std::cout << "Evaluee layers: " << evaluee.getlayers() << std::endl;
+  std::cout << "Evaluee width: " << evaluee.getwidth() << std::endl;
+  std::cout << "Evaluee outs: " << evaluee.getoutputsize() << std::endl;
+  std::cout << "Test data assesment ongoing..." << std::endl;
+  int right = 0;
+  int wrong = right;
+  double input;
+  for(int j = 0; j < 10000; j++){
+   for(int k = 0; k < 784; k++){
+    input = (double)testpics[j][k]/((double)255.0);
+    evaluee.setinput(k, input);
+   }
+   evaluee.feed();
+   if(highestoutput(&evaluee) == testlabels[j]){
+    right++;
+   }else{
+    wrong++;
+   }
+  }
+  double result = ((double)right/(double)(right+wrong));
+  std::cout << "Result is " << result << " accuracy over test data." << std::endl;
+  return 0;
  }
  //If only 1 argument, output opening prompts for creation and training of a new network.
  std::cout << "Interactive deep learning with ANN, first with an evolutionary approach. Compiled on " __DATE__ " at " __TIME__ "." << std::endl;

@@ -126,9 +126,28 @@ int main(int argc, char **argv){
  //initialize pseudorandom number generator system for evolutionary algorithm.
  std::random_device rd;
  std::mt19937 mt(rd());
- double range = 10.0;//the range of values for generating random networks
+ double range;//the range of values for generating random networks
+ double smallrange;
+
+ //Prompt for and accept only a positive floating point number twice, assigning them to range and smallrange.
+ 
+ float temp;
+ std::cout << "How wide of a range will we use to create our random networks?" << std::endl;
+ while(std::cout << "Enter a positive number." && !(std::cin >> temp) || temp <= 0 ){
+  std::cin.clear();
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  std::cout << "Caught invalid data. Try again." << std::endl;
+ }
+ range = temp;
+ std::cout << "How wide of a range for training?" << std::endl;
+ while(std::cout << "Enter a positive integer." && !(std::cin >> temp) || temp <= 0 ){
+  std::cin.clear();
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  std::cout << "Caught invalid data. Try again." << std::endl;
+ }
+ smallrange = temp;
  std::uniform_real_distribution<double> dist(-1 * range, range);//initialize distribution for generating new network
- std::uniform_real_distribution<double> smalldist(-0.05, 0.05);//initialize narrower distribution for mutating existing network
+ std::uniform_real_distribution<double> smalldist(-1 * smallrange, smallrange);//initialize distribution for mutating existing network
 
  //Report to user and initialize trainee randomly
  std::cout << "At first the trainee will be completely random, and will predictably perform very poorly." << std::endl;
@@ -202,7 +221,7 @@ int main(int argc, char **argv){
  //check that the 7th picture is of a 3, and that the 7th label is three. Also output the 3 as a sample to be sure the images are valid.
  int which = 7;
  std::cout << "Data integrity check." << std::endl;
- std::cout << "An image of a handwritten 3 constructed from numbers should appear in the terminal below." << std::endl;
+ std::cout << "An image of a handwritten 3 constructed from digits should appear in the terminal below." << std::endl;
  int count = 0;
  for(int i = 0; i < 28; i++){
   std::cout << std::endl;
